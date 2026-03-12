@@ -9,36 +9,116 @@ logger = logging.getLogger(__name__)
  
 # Emoji map — assigns an emoji based on deal category keyword
 CATEGORY_EMOJIS = {
-    'electronics':   '🖥️',
-    'computer':      '💻',
-    'phone':         '📱',
-    'laptop':        '💻',
+    'apple':         '🍎',
+    'macbook':       '💻',
+    'ipad':          '📱',
+    'samsung':       '📱',
     'tv':            '📺',
+    'television':    '📺',
+    'ps5':           '🎮',
+    'xbox':          '🎮',
+    'nintendo':      '🍄',
     'gaming':        '🎮',
+    'monitor':       '🖥️',
+    'pc':            '🖥️',
+    'desktop':       '🖥️',
+    'laptop':        '💻',
+    'computer':      '💻',
+    'headphone':     '🎧',
+    'earbud':        '🎧',
+    'audio':         '🔊',
+    'speaker':       '🔈',
+    'camera':        '📸',
+    'watch':         '⌚',
+    'smartwatch':    '⌚',
+    'phone':         '📱',
+    'smartphone':    '📱',
+    'electronics':   '🔌',
+    
+    'shirt':         '👕',
+    'pants':         '👖',
+    'jacket':        '🧥',
+    'coat':          '🧥',
+    'shoe':          '👟',
+    'sneaker':       '👟',
+    'boot':          '👢',
     'clothing':      '👕',
     'fashion':       '👗',
-    'shoes':         '👟',
+    'apparel':       '👗',
+    
     'grocery':       '🛒',
     'food':          '🍔',
+    'snack':         '🥨',
+    'drink':         '🥤',
+    'coffee':        '☕',
+    'candy':         '🍫',
+    
     'kitchen':       '🍳',
+    'appliance':     '🧊',
+    'vacuum':        '🧹',
+    'clean':         '🧼',
     'home':          '🏠',
+    'furniture':     '🛋️',
+    'bed':           '🛏️',
+    'bath':          '🛁',
+    
     'garden':        '🌿',
+    'plant':         '🪴',
+    'tool':          '🧰',
+    'hardware':      '🔨',
+    'drill':         '🪛',
+    
     'baby':          '👶',
+    'diaper':        '🧷',
     'toy':           '🧸',
+    'lego':          '🧱',
+    'game':          '🎲',
+    
     'book':          '📚',
+    'movie':         '🎬',
+    'blu-ray':       '💿',
+    'music':         '🎵',
+    
     'sport':         '⚽',
     'fitness':       '💪',
+    'gym':           '🏋️',
+    'bike':          '🚲',
+    'outdoor':       '⛺',
+    'camping':       '⛺',
+    
     'travel':        '✈️',
+    'hotel':         '🏨',
+    'flight':        '🛫',
+    'luggage':       '🧳',
+    
     'auto':          '🚗',
+    'car':           '🚙',
+    'tire':          '🛞',
+    
     'health':        '💊',
+    'medicine':      '🩹',
+    'vitamin':       '💊',
     'beauty':        '💄',
+    'makeup':        '💋',
+    'skincare':      '🧴',
+    'hair':          '💇',
+    
     'pet':           '🐾',
-    'software':      '💿',
+    'dog':           '🐕',
+    'cat':           '🐈',
+    
+    'software':      '💾',
+    'app':           '📱',
     'subscription':  '🔁',
+    'gift card':     '💳',
+    'credit card':   '💳',
+    
     'free':          '🆓',
+    'clearance':     '🚨',
+    'sale':          '🏷️',
 }
  
-DEFAULT_EMOJI = '🔥'  # Used when no category match found
+DEFAULT_EMOJI = '🌟'  # Used when no category match found
  
  
 def get_emoji(deal):
