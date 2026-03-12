@@ -1,0 +1,85 @@
+# .github/workflows/daily_deals.yml
+# Daily Deals Telegram Bot — runs every morning at 08:00 UTC
+ 
+name: 🛍️ Daily Deals Bot
+ 
+on:
+  # ── Scheduled trigger ─────────────────────────────────────────────
+  # Runs automatically at 08:00 UTC every day
+  # Cron format: minute hour day-of-month month day-of-week
+  # '0 8 * * *' means: at minute 0, hour 8, every day, every month, every weekday
+  schedule:
+    - cron: '0 8 * * *'
+ 
+  # ── Manual trigger ────────────────────────────────────────────────
+  # Allows you to run the bot manually from the GitHub Actions tab.
+  # Go to: your repo → Actions → Daily Deals Bot → Run workflow
+  workflow_dispatch:
+    inputs:
+      max_deals:
+        description: 'How many deals to post (default: 5)'
+        required: false
+        default: '5'
+      feed_type:
+        description: 'Feed type: frontpage, all_deals, or electronics'
+        required: false
+        default: 'frontpage'
+ 
+jobs:
+  send_deals:
+    # Use the latest Ubuntu virtual machine (free on GitHub Actions)
+    runs-on: ubuntu-latest
+ 
+    # Timeout: kill the job if it takes more than 10 minutes (prevents runaway billing)
+    timeout-minutes: 10
+ 
+    steps:
+ 
+      # ── Step 1: Download your code ──────────────────────────────
+      # This checks out your repository onto the Ubuntu machine
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+ 
+      # ── Step 2: Install Python ─────────────────────────────────
+      - name: 🐍 Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          # Cache pip downloads — speeds up subsequent runs
+          cache: 'pip'
+          cache-dependency-path: 'requirements.txt'
+ 
+      # ── Step 3: Install dependencies ───────────────────────────
+      - name: 📦 Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+ 
+      # ── Step 4: Run the bot ────────────────────────────────────
+      - name: 🚀 Run Deals Bot
+        # Navigate into the bot directory first so relative imports work
+        working-directory: ./bot
+        run: python main.py
+        env:
+          # ── Secrets from GitHub repository settings ─────────────
+          # These are NEVER visible in logs — GitHub masks them automatically
+          TELEGRAM_BOT_TOKEN:  ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
+ 
+          # ── Configuration variables ──────────────────────────────
+          # Use manual input if triggered manually, otherwise use defaults
+          MAX_DEALS:    ${{ github.event.inputs.max_deals || '5' }}
+          FEED_TYPE:    ${{ github.event.inputs.feed_type || 'frontpage' }}
+          MESSAGE_DELAY: '2.0'
+ 
+      # ── Step 5: Upload logs on failure ─────────────────────────
+      # If the run fails, GitHub saves the log output for you to review.
+      # This step only runs when the bot step above fails.
+      - name: 📋 Upload failure logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failure-logs-${{ github.run_id }}
+          path: |
+            **/*.log
+          retention-days: 7  # Keep logs for 7 days then auto-delete
