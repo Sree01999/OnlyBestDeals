@@ -17,9 +17,9 @@ on:
   workflow_dispatch:
     inputs:
       max_deals:
-        description: 'How many deals to post (default: 5)'
+        description: 'How many deals to post (default: 50)'
         required: false
-        default: '5'
+        default: '50'
       feed_type:
         description: 'Feed type: frontpage, all_deals, or electronics'
         required: false
@@ -68,7 +68,7 @@ jobs:
  
           # ── Configuration variables ──────────────────────────────
           # Use manual input if triggered manually, otherwise use defaults
-          MAX_DEALS:    ${{ github.event.inputs.max_deals || '5' }}
+          MAX_DEALS:    ${{ github.event.inputs.max_deals || '50' }}
           FEED_TYPE:    ${{ github.event.inputs.feed_type || 'frontpage' }}
           MESSAGE_DELAY: '2.0'
  

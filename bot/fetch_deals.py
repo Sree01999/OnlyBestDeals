@@ -83,7 +83,7 @@ def fetch_deals(feed='frontpage', max_deals=5):
  
     # ── Step 4: Parse each deal into a clean dictionary ────────────
     deals = []
-    for item in items[:max_deals]:  # Only take top N deals
+    for item in items:  # Process all items first, so we can sort them, then slice
         try:
             deal = _parse_item(item)
             if deal:  # _parse_item returns None if item is invalid
@@ -92,8 +92,53 @@ def fetch_deals(feed='frontpage', max_deals=5):
         except Exception as e:
             logger.warning(f'Failed to parse one item, skipping: {e}')
             continue  # Skip bad items, don't crash the whole run
+            
+    # ── Step 5: Filter and Sort by Discounts and Ratings (User Request) ──
+    deals = _filter_and_sort_deals(deals)
  
-    logger.info(f'Successfully parsed {len(deals)} deals')
+    logger.info(f'Successfully parsed and sorted {len(deals)} deals')
+    return deals[:max_deals]
+ 
+def _filter_and_sort_deals(deals):
+    """
+    Score and sort deals based on their title and description text using Regex.
+    Looks for high discounts (e.g. 50% off) and high ratings (e.g. 4.5 stars, highly rated).
+    Sorts descending based on score.
+    """
+    import re
+    
+    for deal in deals:
+        score = 0
+        text_to_search = (deal['title'] + " " + deal['description']).lower()
+        
+        # 1. Look for discounts (e.g., '50%', 'save 60%', '60% off')
+        # We find all percentages and take the max as a proxy for the discount
+        percentages = re.findall(r'(\d{1,2})%', text_to_search)
+        if percentages:
+            # Add the highest percentage found to the score (up to 99)
+            max_percent = max([int(p) for p in percentages])
+            score += max_percent
+            
+        # 2. Look for high star ratings (e.g., '4.5 stars', '4.8/5', '5 star')
+        # Match pattern: 4.x or 5.0 followed by star or /5
+        star_match = re.search(r'([45](?:\.\d)?)\s*(?:stars?|/5)', text_to_search)
+        if star_match:
+            rating = float(star_match.group(1))
+            # Boost score heavily for a high rating (e.g., 4.5 * 10 = 45 points)
+            score += int(rating * 10)
+            
+        # 3. Look for keyword indicators of good ratings
+        if 'highly rated' in text_to_search or 'great reviews' in text_to_search:
+            score += 20
+            
+        # 4. Look for massive review counts (e.g., '10,000+ reviews')
+        if re.search(r'\d{1,3}(?:,\d{3})+\s*(?:\+)?\s*reviews?', text_to_search):
+            score += 15
+            
+        deal['score'] = score
+        
+    # Sort deals by highest score first
+    deals.sort(key=lambda d: d.get('score', 0), reverse=True)
     return deals
  
  

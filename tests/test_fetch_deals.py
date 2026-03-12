@@ -39,3 +39,27 @@ def test_extract_image_enclosure():
     soup = BeautifulSoup(xml, 'xml')
     item = soup.find('item')
     assert _extract_image(item, None) == 'http://example.com/enclosure.jpg'
+
+def test_filter_and_sort_deals():
+    from bot.fetch_deals import _filter_and_sort_deals
+    
+    deals = [
+        {"title": "Boring Item", "description": "Just a normal item."},
+        {"title": "Great TV 50% off", "description": "Save big! 4.5 stars and highly rated."},
+        {"title": "Phone Case", "description": "Cheap case, 10% discount."},
+        {"title": "Awesome Headphones", "description": "Over 10,000 reviews and 4.8/5 rating. 20% off."},
+    ]
+    
+    sorted_deals = _filter_and_sort_deals(deals)
+    
+    # TV should be #1 (50 + 45 + 20 = 115 points)
+    assert sorted_deals[0]["title"] == "Great TV 50% off"
+    
+    # Headphones should be #2 (20 + 48 + 15 = 83 points)
+    assert sorted_deals[1]["title"] == "Awesome Headphones"
+    
+    # Phone case should be #3 (10 points)
+    assert sorted_deals[2]["title"] == "Phone Case"
+    
+    # Boring item should be last (0 points)
+    assert sorted_deals[3]["title"] == "Boring Item"

@@ -27,7 +27,7 @@ BOT_TOKEN  = os.environ.get('TELEGRAM_BOT_TOKEN')
 CHANNEL_ID = os.environ.get('TELEGRAM_CHANNEL_ID')
  
 # How many deals to post each morning (change this to your preference)
-MAX_DEALS = int(os.environ.get('MAX_DEALS', '5'))
+MAX_DEALS = int(os.environ.get('MAX_DEALS', '50'))
  
 # Which Slickdeals feed to use: 'frontpage', 'all_deals', or 'electronics'
 FEED_TYPE = os.environ.get('FEED_TYPE', 'frontpage')
