@@ -83,3 +83,16 @@ jobs:
           path: |
             **/*.log
           retention-days: 7  # Keep logs for 7 days then auto-delete
+
+      # ── Step 6: Persist State (Deduplication) ──────────────────
+      - name: 💾 Persist state
+        if: always() # Save state even if some deals failed (partial success)
+        run: |
+          git config --global user.name "DealsBot-State-Tracker"
+          git config --global user.email "bot@users.noreply.github.com"
+          # Only commit if state.json exists and has changes
+          if [ -f bot/state.json ]; then
+            git add bot/state.json
+            git commit -m "chore: update posted deals state [skip ci]" || echo "No changes to state"
+            git push
+          fi

@@ -10,6 +10,7 @@ import time
 from fetch_deals   import fetch_deals
 from format_message import format_deal_message, format_header_message, format_footer_message
 from send_telegram  import send_text_message, send_deal
+from state_tracker  import load_state, save_state, filter_new_deals, update_state
  
 # ── Logging setup ────────────────────────────────────────────────────
 # All output goes to GitHub Actions console — visible in the workflow logs
@@ -86,6 +87,16 @@ def run():
         sys.exit(1)
  
     logger.info(f'Fetched {len(deals)} deals successfully')
+
+    # ── Step 3: Handle Deduplication (State Tracking) ──────────────────
+    state = load_state()
+    deals = filter_new_deals(deals, state)
+    
+    if not deals:
+        logger.info('All fetched deals were already posted previously. Nothing new to send.')
+        sys.exit(0)
+
+    logger.info(f'After deduplication, {len(deals)} new deals remain to be sent')
  
     # ── Step 3: Send header message ───────────────────────────────
     logger.info('Sending header message...')
@@ -98,9 +109,10 @@ def run():
  
     time.sleep(MESSAGE_DELAY)
  
-    # ── Step 4: Send each deal ────────────────────────────────────
+    # ── Step 5: Send each deal ────────────────────────────────────
     sent_count    = 0
     failed_count  = 0
+    sent_deals    = []
  
     for i, deal in enumerate(deals, start=1):
         logger.info(f'Sending deal {i}/{len(deals)}: {deal["title"][:50]}')
@@ -112,7 +124,8 @@ def run():
         success = send_deal(BOT_TOKEN, CHANNEL_ID, deal, message)
  
         if success:
-            sent_count += 1
+            sent_count    += 1
+            sent_deals.append(deal) # Track this deal to update state later
         else:
             failed_count += 1
             logger.warning(f'Failed to send deal {i} — continuing with next deal')
@@ -127,10 +140,16 @@ def run():
     footer = format_footer_message()
     send_text_message(BOT_TOKEN, CHANNEL_ID, footer, disable_preview=True)
  
-    # ── Step 6: Final summary ──────────────────────────────────────
+    # ── Step 7: Final summary & save state ───────────────────────────
     logger.info('=' * 60)
     logger.info(f'RUN COMPLETE — Sent: {sent_count} | Failed: {failed_count}')
     logger.info('=' * 60)
+
+    # ── Step 8: Update state file with successfully sent deals ──────
+    if sent_deals:
+        logger.info('Updating state file...')
+        state = update_state(state, sent_deals)
+        save_state(state)
  
     # Exit with failure code if any deals failed to send
     if failed_count > 0 and sent_count == 0:
