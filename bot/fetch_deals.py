@@ -32,61 +32,55 @@ def fetch_deals(feed='frontpage', max_deals=5):
     Returns:
         list: List of deal dicts, or empty list on failure.
     """
-    url = RSS_URLS.get(feed, RSS_URLS['frontpage'])
-    logger.info(f'Fetching deals from: {url}')
- 
-    # ── Step 1: Make the HTTP request ──────────────────────────────
-    try:
-        response = requests.get(
-            url,
-            timeout=15,          # Wait max 15 seconds for response
-            headers={
-                # Identify ourselves politely — some sites block empty User-Agent
-                'User-Agent': 'DealsBotRSS/1.0 (Telegram Deal Poster)'
-            }
-        )
-        response.raise_for_status()  # Raises exception if status code is 4xx/5xx
-        logger.info(f'RSS fetch successful. Status: {response.status_code}')
- 
-    except requests.exceptions.Timeout:
-        logger.error('RSS fetch timed out after 15 seconds')
-        return []
- 
-    except requests.exceptions.ConnectionError as e:
-        logger.error(f'Network error fetching RSS: {e}')
-        return []
- 
-    except requests.exceptions.HTTPError as e:
-        logger.error(f'HTTP error from Slickdeals: {e}')
-        return []
- 
-    # ── Step 2: Parse the XML response ─────────────────────────────
-    try:
-        # lxml parser is fastest for XML; html.parser is fallback
-        soup = BeautifulSoup(response.content, 'lxml-xml')
-    except Exception as e:
-        logger.error(f'XML parsing failed: {e}')
-        # Fallback: try html.parser
+    base_url = RSS_URLS.get(feed, RSS_URLS['frontpage'])
+    urls_to_fetch = [base_url]
+    
+    # Slickdeals caps feed at ~25 items. To get 50, we need to fetch from multiple feeds.
+    if max_deals > 25:
+        fallback_feeds = [
+            'https://slickdeals.net/rss.php',                      # all deals
+            'https://slickdeals.net/newsearch.php?mode=frontpage&searcharea=deals&searchin=first&rss=1', # search
+            'https://slickdeals.net/rss.php?ftype=9',              # electronics
+            'https://slickdeals.net/rss.php?mode=popdeals'         # popular
+        ]
+        for f in fallback_feeds:
+            if f not in urls_to_fetch:
+                urls_to_fetch.append(f)
+                
+    items = []
+    
+    for url in urls_to_fetch:
+        logger.info(f'Fetching deals from: {url}')
         try:
-            soup = BeautifulSoup(response.content, 'html.parser')
-        except Exception as e2:
-            logger.error(f'Fallback parsing also failed: {e2}')
-            return []
- 
-    # ── Step 3: Extract deal items ──────────────────────────────────
-    items = soup.find_all('item')  # Each <item> in the RSS = one deal
-    logger.info(f'Found {len(items)} items in RSS feed')
- 
+            response = requests.get(url, timeout=15, headers={'User-Agent': 'DealsBotRSS/1.0'})
+            response.raise_for_status()
+            
+            try:
+                soup = BeautifulSoup(response.content, 'lxml-xml')
+            except Exception:
+                soup = BeautifulSoup(response.content, 'html.parser')
+                
+            feed_items = soup.find_all('item')
+            items.extend(feed_items)
+            logger.info(f'Found {len(feed_items)} items from {url}')
+            
+            if len(items) >= max_deals * 2: # Fetch a healthy pool to filter from
+                break
+        except Exception as e:
+            logger.error(f'Failed fetching {url}: {e}')
+            
     if not items:
-        logger.warning('No items found in RSS — feed may have changed format')
+        logger.warning('No items found in any RSS feed - format may have changed')
         return []
  
     # ── Step 4: Parse each deal into a clean dictionary ────────────
     deals = []
+    seen_links = set()
     for item in items:  # Process all items first, so we can sort them, then slice
         try:
             deal = _parse_item(item)
-            if deal:  # _parse_item returns None if item is invalid
+            if deal and deal['link'] not in seen_links:
+                seen_links.add(deal['link'])
                 deals.append(deal)
                 logger.info(f'  Parsed deal: {deal["title"][:60]}...')
         except Exception as e:
